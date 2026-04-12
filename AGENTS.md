@@ -16,3 +16,5 @@ Use "ubuntu1-ssh-login"-skill to login.
 Git:
 * https://github.com/schmiereck/ba_depth_node
 
+Overview Projekt "Bracket-Arm":
+- "Docs/PLAN_ROS2_CAMERA-Claude.md"
