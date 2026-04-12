@@ -1,0 +1,25 @@
+# Parameters for the depth_estimator_node.
+#
+# Uses "/**" wildcard so the same YAML works regardless of namespace/node name.
+/**:
+  ros__parameters:
+    # Topics — must match ba_camera_bridge topic contract.
+    input_topic: "/ba_overview_camera/image_raw/compressed"
+    camera_info_topic: "/ba_overview_camera/camera_info"
+    output_topic: "/ba_overview_camera/depth/image_raw"
+
+    # Depth Anything V2 Small via HuggingFace transformers.
+    # Model is cached in ~/.cache/huggingface/hub/ (~100 MB).
+    model_id: "depth-anything/Depth-Anything-V2-Small-hf"
+    device: "cpu"
+
+    # Undistort the input image using camera_info intrinsics before
+    # running depth estimation.  Disable if camera_info is not available
+    # or the camera is already rectified.
+    rectify: true
+
+    # Set to a directory path to save depth_latest.png on every frame.
+    # Useful for visual verification since CycloneDDS on WSL2 loopback
+    # cannot transport the large depth images to rviz2.
+    # Leave empty ("") to disable.
+    debug_save_path: "/tmp"

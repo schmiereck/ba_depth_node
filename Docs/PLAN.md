@@ -334,8 +334,29 @@ schon mitdenken — die Messwerte fließen hier ein:
 - [x] Phase 1.5: Echter 640×480-Kamera-Frame aus
       `/ba_overview_camera/image_raw/compressed` durchgejagt
 
-**Phase 1 abgeschlossen.** Entscheidung über Phase-2-Struktur
-(ROS-Node-Layout, venv-Strategie, Rectification-Ort) steht als nächstes an.
+**Phase 1 abgeschlossen.**
+
+### Phase 2: ROS2 Node
+
+Entscheidungen:
+- **venv-Strategie**: `--system-site-packages` venv → sieht `rclpy` vom System + `torch`/`transformers` aus dem venv
+- **Rectification**: Im Depth-Node, vor Inferenz. `camera_info` → `cv2.initUndistortRectifyMap` → LUT einmalig cachen
+- **Metrische Tiefe**: Noch nicht — Phase 2 liefert relative inverse depth (float32, 0.0–1.0)
+
+- [x] Phase 2.1: `ament_python`-Paketskelett (package.xml, setup.py, setup.cfg)
+- [x] Phase 2.2: `config/depth_estimator.yaml` (Parameter)
+- [x] Phase 2.3: `ba_depth_node/depth_estimator_node.py` (ROS2 Node)
+- [x] Phase 2.4: `launch/depth_estimator.launch.py`
+- [x] Phase 2.5: venv mit `--system-site-packages` neu angelegt, `colcon build` + Node-Start OK.
+      Hinweise: Pillow und scipy mussten im venv überschrieben werden (System-Versionen
+      zu alt). cv_bridge inkompatibel mit numpy 2.x → manuelle Image-Message-Konstruktion.
+      Launch-File nutzt `prefix` mit venv-Python statt `#!/usr/bin/python3`-Shebang.
+- [x] Phase 2.6: End-to-End-Test mit laufender Kamera bestanden.
+      Depth-PNG visuell verifiziert. CycloneDDS auf WSL2 Loopback kann
+      große Messages (~1.2 MB) nicht zwischen lokalen Prozessen transportieren
+      → rviz2/topic hz funktionieren nicht für das Depth-Topic. Workaround:
+      `debug_save_path` Parameter speichert `/tmp/depth_latest.png` pro Frame.
+      Zugriff von Windows: `\\wsl.localhost\Ubuntu-22.04\tmp\depth_latest.png`
 
 ### Gemessene Performance (Phase 1)
 
