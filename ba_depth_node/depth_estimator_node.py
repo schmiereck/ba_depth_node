@@ -15,7 +15,6 @@ import time
 
 import cv2
 import numpy as np
-from PIL import Image as PILImage
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import (
@@ -25,7 +24,8 @@ from rclpy.qos import (
     HistoryPolicy,
 )
 from sensor_msgs.msg import CameraInfo, CompressedImage, Image
-from transformers import pipeline
+
+from ba_depth_node.depth_estimator import DepthEstimator
 
 
 class DepthEstimatorNode(Node):
@@ -64,13 +64,9 @@ class DepthEstimatorNode(Node):
         self._frame_count = 0
 
         # -- model --------------------------------------------------------
-        self.get_logger().info(
-            f'Loading model {model_id} on {device} ...')
-        t0 = time.perf_counter()
-        self._pipe = pipeline(
-            task='depth-estimation', model=model_id, device=device)
-        self.get_logger().info(
-            f'Model loaded in {time.perf_counter() - t0:.2f} s')
+        self._depth = DepthEstimator(
+            model_id=model_id, device=device,
+            log_fn=self.get_logger().info)
 
         # -- rectification state ------------------------------------------
         self._map_x: np.ndarray | None = None
@@ -181,16 +177,9 @@ class DepthEstimatorNode(Node):
                 bgr, self._map_x, self._map_y, cv2.INTER_LINEAR)
 
         # 3. Inference ---------------------------------------------------
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        pil_img = PILImage.fromarray(rgb)
-        result = self._pipe(pil_img)
-        depth_pil = result['depth']  # PIL Image, uint8 grayscale
+        depth_f32 = self._depth.estimate(bgr)
 
-        # 4. Normalise to float32 [0.0, 1.0] ----------------------------
-        depth_f32 = np.ascontiguousarray(
-            np.array(depth_pil, dtype=np.float32) / 255.0)
-
-        # 5. Publish -----------------------------------------------------
+        # 4. Publish -----------------------------------------------------
         depth_msg = Image()
         depth_msg.header.stamp = msg.header.stamp
         depth_msg.header.frame_id = msg.header.frame_id
@@ -201,7 +190,7 @@ class DepthEstimatorNode(Node):
         depth_msg.data = bytes(depth_f32.tobytes())
         self._depth_pub.publish(depth_msg)
 
-        # 6. Debug: save depth PNG to disk periodically ------------------
+        # 5. Debug: save depth PNG to disk periodically ------------------
         self._frame_count += 1
         if self._debug_save_path:
             depth_uint8 = (depth_f32 * 255.0).astype(np.uint8)
