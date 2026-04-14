@@ -1,4 +1,5 @@
 __pycache__/
+ba_depth_node/__pycache__/
 *.pyc
 *.egg-info/
 build/
